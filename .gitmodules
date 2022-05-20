@@ -1,0 +1,3 @@
+[submodule "liboqs-rs-bindings/liboqs"]
+	path = liboqs
+	url = ../liboqs.git
