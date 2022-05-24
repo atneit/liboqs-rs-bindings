@@ -39,6 +39,14 @@ pub trait Hqc: KemWithRejectionSampling {
     fn eprime(ct: &mut Self::Ciphertext, sk: &mut Self::SecretKey) -> oqs::Result<Self::Ep>;
 
     fn error_components_r1_r2_e(pt: &mut Self::Plaintext) -> oqs::Result<(Self::U,Self::U,Self::U)>;
+
+    fn encaps_with_plaintext_and_r1(
+                ct: &mut Self::Ciphertext,
+                ss: &mut Self::SharedSecret,
+                pk: &mut Self::PublicKey,
+                pt: &mut Self::Plaintext,
+                r1_sparse: &mut [u32],
+            ) -> self::Result<()>;
 }
 
 macro_rules! bind_hqc {
@@ -120,7 +128,8 @@ macro_rules! bind_hqc {
                 let ss = ss.as_mut_ptr();
                 let pk = pk.as_mut_ptr();
                 let pt = pt.as_mut_ptr();
-                oqs::calloqs!($encaps_with_plaintext(ct, ss, pk, pt))
+                let null = std::ptr::null::<u32>() as *mut u32;
+                oqs::calloqs!($encaps_with_plaintext(ct, ss, pk, pt, null, 0))
             }
         }
 
@@ -234,6 +243,23 @@ macro_rules! bind_hqc {
                     oqs::calloqs!($error_components(m, r1, r2, e))?;
                 }
                 Ok((r1, r2, e))
+            }
+
+            fn encaps_with_plaintext_and_r1(
+                ct: &mut Self::Ciphertext,
+                ss: &mut Self::SharedSecret,
+                pk: &mut Self::PublicKey,
+                pt: &mut Self::Plaintext,
+                r1_sparse: &mut [u32],
+            ) -> self::Result<()>
+            {
+                let ct = ct.as_mut_ptr();
+                let ss = ss.as_mut_ptr();
+                let pk = pk.as_mut_ptr();
+                let pt = pt.as_mut_ptr();
+                let r1_sparse_len = r1_sparse.len() as u32;
+                let r1_sparse = r1_sparse.as_mut_ptr();
+                oqs::calloqs!($encaps_with_plaintext(ct, ss, pk, pt, r1_sparse, r1_sparse_len))
             }
         }
     )*}
