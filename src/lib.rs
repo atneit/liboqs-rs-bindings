@@ -3,12 +3,14 @@
 #![allow(non_snake_case)]
 #![allow(improper_ctypes)]
 #![allow(deref_nullptr)] //TODO: this is due to rust-lang/rust-bindgen#1651, remove when solved
+#![cfg(not(doctest))]
 
 use ::serde::{Deserialize, Serialize};
 use log::trace;
 use std::fmt::{Debug, Display};
 
 #[allow(clippy::all, dead_code)]
+
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
@@ -372,6 +374,6 @@ mod tests {
     #[test]
     fn it_works() {
         let a = unsafe { OQS_KEM_alg_count() };
-        assert_eq!(42, a);
+        assert_eq!(56, a);
     }
 }
