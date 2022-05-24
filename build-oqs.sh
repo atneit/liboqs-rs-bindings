@@ -2,7 +2,9 @@
 
 echo If running debian/ubuntu install dependecies with the following command:
 echo sudo apt install clang llvm gcc ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz
-read -p "Press enter to continue"
+if [[ x$1 != x"--yes" ]]; then
+    read -p "Press enter to continue"
+fi
 
 cd liboqs
 
