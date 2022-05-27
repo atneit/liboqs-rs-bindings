@@ -13,15 +13,21 @@ pub struct HqcParams<T> {
     pub PARAM_N1N2: T,
     pub PARAM_SECURITY: T,
     pub PARAM_DELTA: T,
+    pub PARAM_OMEGA: T,
 }
 
 pub trait Hqc: KemWithRejectionSampling {
+    type X: KemBuf<T = u64>;
+    type Y: KemBuf<T = u32>;
     type U: KemBuf<T = u64>;
     type V: KemBuf<T = u64>;
     type Ep: KemBuf<T = u8>;
     type Intermediate: KemBuf<T = u8>;
 
     fn params<T: Integer + NumCast>() -> HqcParams<T>;
+
+    fn secrets_from_key(sk: &Self::SecretKey) -> oqs::Result<(Self::X, Self::Y)>;
+
     fn decode(ct: &mut Self::Ciphertext, sk: &mut Self::SecretKey) -> oqs::Result<Self::Plaintext>;
 
     #[allow(clippy::type_complexity)]
@@ -57,16 +63,20 @@ macro_rules! bind_hqc {
         PARAM_N1N2: $PARAM_N1N2:expr,
         PARAM_SECURITY: $PARAM_SECURITY:expr,
         PARAM_DELTA: $PARAM_DELTA:expr,
+        PARAM_OMEGA: $PARAM_OMEGA:expr,
         PublicKey: $PK:ident[$PKlen:expr],
         SecretKey : $SK:ident[$SKlen:expr],
         Ciphertext : $CT:ident[$CTlen:expr],
         SharedSecret : $SS:ident[$SSlen:expr],
         Plaintext: $PT:ident[$PTlen:expr],
+        X: $X:ident,
+        Y: $Y:ident,
         U: $U:ident,
         V: $V:ident,
         Ep: $Ep:ident,
         Intermediate: $Intermediate:ident,
         keypair: $keypair:ident,
+        secret_key_from_string: $secret_key_from_string:ident,
         encaps: $encaps:ident,
         encaps_with_plaintext: $encaps_with_plaintext:ident,
         numrejections: $numrejections:ident,
@@ -92,6 +102,12 @@ macro_rules! bind_hqc {
 
         pub struct $PT([u8; $PTlen as usize]);
         impl_kembuf!($PT; u8;$PTlen);
+
+        pub struct $X([u64; ($PARAM_N as usize+63)/64]);
+        impl_kembuf!($X; u64;($PARAM_N as usize+63)/64);
+
+        pub struct $Y([u32;  $PARAM_OMEGA]);
+        impl_kembuf!($Y; u32; $PARAM_OMEGA);
 
         pub struct $U([u64; ($PARAM_N as usize+63)/64]);
         impl_kembuf!($U; u64;($PARAM_N as usize+63)/64);
@@ -134,6 +150,8 @@ macro_rules! bind_hqc {
         }
 
         impl Hqc for $name {
+            type X = $X;
+            type Y = $Y;
             type V = $V;
             type U = $U;
             type Ep = $Ep;
@@ -147,7 +165,25 @@ macro_rules! bind_hqc {
                     PARAM_N1N2: NumCast::from($PARAM_N1N2).unwrap(),
                     PARAM_SECURITY: NumCast::from($PARAM_SECURITY).unwrap(),
                     PARAM_DELTA: NumCast::from($PARAM_DELTA).unwrap(),
+                    PARAM_OMEGA: NumCast::from($PARAM_OMEGA).unwrap(),
                 }
+            }
+
+            fn secrets_from_key(sk: &Self::SecretKey) -> oqs::Result<(Self::X, Self::Y)>
+            {
+                let mut x = Self::X::new();
+                let mut y = Self::Y::new();
+                let mut pk = Self::PublicKey::new();
+
+                {
+                    let x = x.as_mut_ptr();
+                    let y = y.as_mut_ptr();
+                    let pk = pk.as_mut_ptr();
+                    let sk = sk.as_ptr();
+                    oqs::calloqs!($secret_key_from_string(x, y, pk, sk))?;
+                }
+
+                Ok((x, y))
             }
 
             fn decode(
@@ -273,16 +309,20 @@ bind_hqc! (
         PARAM_N1N2: 17664,
         PARAM_SECURITY: 128,
         PARAM_DELTA: 15,
+        PARAM_OMEGA: 66,
         PublicKey: Hqc128PublicKey[oqs::OQS_KEM_hqc_128_length_public_key as usize],
         SecretKey : Hqc128SecretKey[oqs::OQS_KEM_hqc_128_length_secret_key as usize],
         Ciphertext : Hqc128Ciphertext[oqs::OQS_KEM_hqc_128_length_ciphertext as usize],
         SharedSecret : Hqc128SharedSecret[oqs::OQS_KEM_hqc_128_length_shared_secret as usize],
         Plaintext : Hqc128Plaintext[oqs::OQS_KEM_hqc_128_length_plaintext as usize],
+        X : Hqc128X,
+        Y : Hqc128Y,
         U : Hqc128U,
         V : Hqc128V,
         Ep : Hqc128Ep,
         Intermediate : Hqc128Intermediate,
         keypair: OQS_KEM_hqc_128_keypair,
+        secret_key_from_string: OQS_KEM_hqc_128_secret_key_from_string,
         encaps: OQS_KEM_hqc_128_encaps,
         encaps_with_plaintext: OQS_KEM_hqc_128_encaps_with_m,
         numrejections: OQS_KEM_hqc_128_numrejections,
@@ -300,16 +340,20 @@ bind_hqc! (
         PARAM_N1N2: 35840,
         PARAM_SECURITY: 192,
         PARAM_DELTA: 16,
+        PARAM_OMEGA: 100,
         PublicKey: Hqc192PublicKey[oqs::OQS_KEM_hqc_192_length_public_key as usize],
         SecretKey : Hqc192SecretKey[oqs::OQS_KEM_hqc_192_length_secret_key as usize],
         Ciphertext : Hqc192Ciphertext[oqs::OQS_KEM_hqc_192_length_ciphertext as usize],
         SharedSecret : Hqc192SharedSecret[oqs::OQS_KEM_hqc_192_length_shared_secret as usize],
         Plaintext : Hqc192Plaintext[oqs::OQS_KEM_hqc_192_length_plaintext as usize],
+        X : Hqc192X,
+        Y : Hqc192Y,
         U : Hqc192U,
         V : Hqc192V,
         Ep : Hqc192Ep,
         Intermediate : Hqc192Intermediate,
         keypair: OQS_KEM_hqc_192_keypair,
+        secret_key_from_string: OQS_KEM_hqc_192_secret_key_from_string,
         encaps: OQS_KEM_hqc_192_encaps,
         encaps_with_plaintext: OQS_KEM_hqc_192_encaps_with_m,
         numrejections: OQS_KEM_hqc_192_numrejections,
@@ -327,16 +371,20 @@ bind_hqc! (
         PARAM_N1N2: 57600,
         PARAM_SECURITY: 256,
         PARAM_DELTA: 29,
+        PARAM_OMEGA: 131,
         PublicKey: Hqc256PublicKey[oqs::OQS_KEM_hqc_256_length_public_key as usize],
         SecretKey : Hqc256SecretKey[oqs::OQS_KEM_hqc_256_length_secret_key as usize],
         Ciphertext : Hqc256Ciphertext[oqs::OQS_KEM_hqc_256_length_ciphertext as usize],
         SharedSecret : Hqc256SharedSecret[oqs::OQS_KEM_hqc_256_length_shared_secret as usize],
         Plaintext : Hqc256Plaintext[oqs::OQS_KEM_hqc_256_length_plaintext as usize],
+        X : Hqc256X,
+        Y : Hqc256Y,
         U : Hqc256U,
         V : Hqc256V,
         Ep : Hqc256Ep,
         Intermediate : Hqc256Intermediate,
         keypair: OQS_KEM_hqc_256_keypair,
+        secret_key_from_string: OQS_KEM_hqc_256_secret_key_from_string,
         encaps: OQS_KEM_hqc_256_encaps,
         encaps_with_plaintext: OQS_KEM_hqc_256_encaps_with_m,
         numrejections: OQS_KEM_hqc_256_numrejections,
