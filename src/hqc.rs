@@ -44,6 +44,8 @@ pub trait Hqc: KemWithRejectionSampling {
 
     fn eprime(ct: &mut Self::Ciphertext, sk: &mut Self::SecretKey) -> oqs::Result<Self::Ep>;
 
+    fn eprime_m(ct: &mut Self::Ciphertext, sk: &mut Self::SecretKey, m: &mut Self::Plaintext) -> oqs::Result<Self::Ep>;
+
     fn error_components_r1_r2_e(pt: &mut Self::Plaintext) -> oqs::Result<(Self::U,Self::U,Self::U)>;
 
     fn encaps_with_plaintext_and_r1(
@@ -258,7 +260,30 @@ macro_rules! bind_hqc {
                     // Parse the ciphertext into u, v and d
                     oqs::calloqs!($parse_ciphertext(u, v, d, ct))?;
 
-                    // Decrypt the ciphertext into m
+                    // Extract eprime 
+                    oqs::calloqs!($eprime(e, m, u, v, sk))?;
+                }
+                Ok(e)
+            }
+
+            fn eprime_m(ct: &mut Self::Ciphertext, sk: &mut Self::SecretKey, m: &mut Self::Plaintext) -> oqs::Result<Self::Ep> {
+                let mut e = Self::Ep::new();
+                let mut u = Self::U::new();
+                let mut v = Self::V::new();
+                let mut d = SHA512Buf::new();
+                {
+                    let ct = ct.as_mut_ptr();
+                    let sk = sk.as_mut_ptr();
+                    let u = u.as_mut_ptr();
+                    let v = v.as_mut_ptr();
+                    let d = d.as_mut_ptr();
+                    let m = m.as_mut_ptr();
+                    let e = e.as_mut_ptr();
+
+                    // Parse the ciphertext into u, v and d
+                    oqs::calloqs!($parse_ciphertext(u, v, d, ct))?;
+
+                    // Extract eprime 
                     oqs::calloqs!($eprime(e, m, u, v, sk))?;
                 }
                 Ok(e)
