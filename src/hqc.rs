@@ -23,6 +23,7 @@ pub trait Hqc: KemWithRejectionSampling {
     type V: KemBuf<T = u64>;
     type Ep: KemBuf<T = u8>;
     type Intermediate: KemBuf<T = u8>;
+    type DecoderInput: KemBuf<T = u8>;
 
     fn params<T: Integer + NumCast>() -> HqcParams<T>;
 
@@ -38,23 +39,30 @@ pub trait Hqc: KemWithRejectionSampling {
         Self::Plaintext,
         Self::Intermediate,
         Self::Intermediate,
+        Self::DecoderInput,
         Self::U,
         Self::V,
     )>;
 
     fn eprime(ct: &mut Self::Ciphertext, sk: &mut Self::SecretKey) -> oqs::Result<Self::Ep>;
 
-    fn eprime_m(ct: &mut Self::Ciphertext, sk: &mut Self::SecretKey, m: &mut Self::Plaintext) -> oqs::Result<Self::Ep>;
+    fn eprime_m(
+        ct: &mut Self::Ciphertext,
+        sk: &mut Self::SecretKey,
+        m: &mut Self::Plaintext,
+    ) -> oqs::Result<Self::Ep>;
 
-    fn error_components_r1_r2_e(pt: &mut Self::Plaintext) -> oqs::Result<(Self::U,Self::U,Self::U)>;
+    fn error_components_r1_r2_e(
+        pt: &mut Self::Plaintext,
+    ) -> oqs::Result<(Self::U, Self::U, Self::U)>;
 
     fn encaps_with_plaintext_and_r1(
-                ct: &mut Self::Ciphertext,
-                ss: &mut Self::SharedSecret,
-                pk: &mut Self::PublicKey,
-                pt: &mut Self::Plaintext,
-                r1_sparse: &mut [u32],
-            ) -> self::Result<()>;
+        ct: &mut Self::Ciphertext,
+        ss: &mut Self::SharedSecret,
+        pk: &mut Self::PublicKey,
+        pt: &mut Self::Plaintext,
+        r1_sparse: &mut [u32],
+    ) -> self::Result<()>;
 }
 
 macro_rules! bind_hqc {
@@ -77,6 +85,7 @@ macro_rules! bind_hqc {
         V: $V:ident,
         Ep: $Ep:ident,
         Intermediate: $Intermediate:ident,
+        DecoderInput: $DecoderInput:ident,
         keypair: $keypair:ident,
         secret_key_from_string: $secret_key_from_string:ident,
         encaps: $encaps:ident,
@@ -123,6 +132,9 @@ macro_rules! bind_hqc {
         pub struct $Intermediate([u8; $PARAM_N1 as usize]);
         impl_kembuf!($Intermediate; u8; $PARAM_N1 as usize);
 
+        pub struct $DecoderInput([u8; (($PARAM_N as usize+63)/64)*8]);
+        impl_kembuf!($DecoderInput; u8; (($PARAM_N as usize+63)/64)*8);
+
         impl KemWithRejectionSampling for $name {
             type Plaintext = $PT;
 
@@ -158,6 +170,7 @@ macro_rules! bind_hqc {
             type U = $U;
             type Ep = $Ep;
             type Intermediate = $Intermediate;
+            type DecoderInput = $DecoderInput;
 
             fn params<T: Integer+NumCast>() -> HqcParams<T> {
                 HqcParams {
@@ -216,13 +229,14 @@ macro_rules! bind_hqc {
             fn decode_intermediates(
                 ct: &mut Self::Ciphertext,
                 sk: &mut Self::SecretKey,
-            ) -> oqs::Result<(Self::Plaintext, Self::Intermediate, Self::Intermediate, Self::U, Self::V)> {
+            ) -> oqs::Result<(Self::Plaintext, Self::Intermediate, Self::Intermediate, Self::DecoderInput, Self::U, Self::V)> {
                 let mut m = Self::Plaintext::new();
                 let mut u = Self::U::new();
                 let mut v = Self::V::new();
                 let mut d = SHA512Buf::new();
                 let mut enc = Self::Intermediate::new();
                 let mut dec = Self::Intermediate::new();
+                let mut inp = Self::DecoderInput::new();
                 {
                     let ct = ct.as_mut_ptr();
                     let sk = sk.as_mut_ptr();
@@ -232,14 +246,15 @@ macro_rules! bind_hqc {
                     let m = m.as_mut_ptr();
                     let enc = enc.as_mut_ptr();
                     let dec = dec.as_mut_ptr();
+                    let inp = inp.as_mut_ptr();
 
                     // Parse the ciphertext into u, v and d
                     oqs::calloqs!($parse_ciphertext(u, v, d, ct))?;
 
                     // Decrypt the ciphertext into m
-                    oqs::calloqs!($decrypt_intermediates(m, enc, dec, u, v, sk))?;
+                    oqs::calloqs!($decrypt_intermediates(m, enc, dec, inp, u, v, sk))?;
                 }
-                Ok((m, enc, dec, u, v))
+                Ok((m, enc, dec, inp, u, v))
             }
 
             fn eprime(ct: &mut Self::Ciphertext, sk: &mut Self::SecretKey) -> oqs::Result<Self::Ep> {
@@ -260,7 +275,7 @@ macro_rules! bind_hqc {
                     // Parse the ciphertext into u, v and d
                     oqs::calloqs!($parse_ciphertext(u, v, d, ct))?;
 
-                    // Extract eprime 
+                    // Extract eprime
                     oqs::calloqs!($eprime(e, m, u, v, sk))?;
                 }
                 Ok(e)
@@ -283,7 +298,7 @@ macro_rules! bind_hqc {
                     // Parse the ciphertext into u, v and d
                     oqs::calloqs!($parse_ciphertext(u, v, d, ct))?;
 
-                    // Extract eprime 
+                    // Extract eprime
                     oqs::calloqs!($eprime(e, m, u, v, sk))?;
                 }
                 Ok(e)
@@ -346,6 +361,7 @@ bind_hqc! (
         V : Hqc128V,
         Ep : Hqc128Ep,
         Intermediate : Hqc128Intermediate,
+        DecoderInput : Hqc128DecoderInput,
         keypair: OQS_KEM_hqc_128_keypair,
         secret_key_from_string: OQS_KEM_hqc_128_secret_key_from_string,
         encaps: OQS_KEM_hqc_128_encaps,
@@ -377,6 +393,7 @@ bind_hqc! (
         V : Hqc192V,
         Ep : Hqc192Ep,
         Intermediate : Hqc192Intermediate,
+        DecoderInput : Hqc192DecoderInput,
         keypair: OQS_KEM_hqc_192_keypair,
         secret_key_from_string: OQS_KEM_hqc_192_secret_key_from_string,
         encaps: OQS_KEM_hqc_192_encaps,
@@ -408,6 +425,7 @@ bind_hqc! (
         V : Hqc256V,
         Ep : Hqc256Ep,
         Intermediate : Hqc256Intermediate,
+        DecoderInput : Hqc256DecoderInput,
         keypair: OQS_KEM_hqc_256_keypair,
         secret_key_from_string: OQS_KEM_hqc_256_secret_key_from_string,
         encaps: OQS_KEM_hqc_256_encaps,

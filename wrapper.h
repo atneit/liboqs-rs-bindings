@@ -82,9 +82,9 @@ void PQCLEAN_HQCRMRS128_CLEAN_hqc_pke_error_components(const unsigned char *m, u
 void PQCLEAN_HQCRMRS192_CLEAN_hqc_pke_error_components(const unsigned char *m, uint64_t *r1, uint64_t *r2, uint64_t *e);
 void PQCLEAN_HQCRMRS256_CLEAN_hqc_pke_error_components(const unsigned char *m, uint64_t *r1, uint64_t *r2, uint64_t *e);
 
-void PQCLEAN_HQCRMRS128_CLEAN_hqc_pke_decrypt_intermediates(uint8_t *m, uint8_t *rmencoded, uint8_t *rmdecoded, const uint64_t *u, const uint64_t *v, const unsigned char *sk);
-void PQCLEAN_HQCRMRS192_CLEAN_hqc_pke_decrypt_intermediates(uint8_t *m, uint8_t *rmencoded, uint8_t *rmdecoded, const uint64_t *u, const uint64_t *v, const unsigned char *sk);
-void PQCLEAN_HQCRMRS256_CLEAN_hqc_pke_decrypt_intermediates(uint8_t *m, uint8_t *rmencoded, uint8_t *rmdecoded, const uint64_t *u, const uint64_t *v, const unsigned char *sk);
+void PQCLEAN_HQCRMRS128_CLEAN_hqc_pke_decrypt_intermediates(uint8_t *m, uint8_t *rmencoded, uint8_t *rmdecoded, uint8_t *rminput, const uint64_t *u, const uint64_t *v, const unsigned char *sk);
+void PQCLEAN_HQCRMRS192_CLEAN_hqc_pke_decrypt_intermediates(uint8_t *m, uint8_t *rmencoded, uint8_t *rmdecoded, uint8_t *rminput, const uint64_t *u, const uint64_t *v, const unsigned char *sk);
+void PQCLEAN_HQCRMRS256_CLEAN_hqc_pke_decrypt_intermediates(uint8_t *m, uint8_t *rmencoded, uint8_t *rmdecoded, uint8_t *rminput, const uint64_t *u, const uint64_t *v, const unsigned char *sk);
 
 void PQCLEAN_HQCRMRS128_CLEAN_hqc_pke_eprime(uint8_t *eprime, uint8_t *m, const uint64_t *u, const uint64_t *v, const unsigned char *sk);
 void PQCLEAN_HQCRMRS192_CLEAN_hqc_pke_eprime(uint8_t *eprime, uint8_t *m, const uint64_t *u, const uint64_t *v, const unsigned char *sk);
