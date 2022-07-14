@@ -4,7 +4,7 @@ BUILD_TYPE=""
 #BUILD_TYPE="-DCMAKE_BUILD_TYPE=Debug"
 
 echo If running debian/ubuntu install dependecies with the following command:
-echo sudo apt install clang llvm gcc ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz
+echo sudo apt install clang llvm gcc libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz
 if [[ x$1 != x"--yes" ]]; then
     read -p "Press enter to continue"
 fi
